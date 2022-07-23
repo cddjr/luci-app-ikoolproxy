@@ -8,6 +8,20 @@ KP_DIR=/usr/share/koolproxy
 TMP_DIR=/tmp/koolproxy
 LOGFILE="/var/log/koolproxy.log"
 
+KP_DAT=false
+DAILY_TXT=false
+KOOLPROXY_TXT=false
+YHOSTS_TXT=false
+STEVEN_TXT=false
+ADG_TXT=false
+ANTIAD_TXT=false
+ADGK_TXT=false
+KOOLPROXY_IPSET_CONF=false
+DNSMASQ_ADBLOCK=false
+USER_TXT=false
+
+alias WGET='wget --no-check-certificate -4 -c -T 8 -t 10'
+
 config_t_get() {
 	local index=0
 	[ -n "$4" ] && index=$4
@@ -44,7 +58,7 @@ __compare_file() {
 	echo $(date "+%F %T"): ------------------- $descript更新 ------------------- >>$LOGFILE
 	local filename=`basename $localPath`
 	local remotePath="$TMP_DIR/$filename"
-	wget "$remoteUrl" -q -O "$remotePath"
+	WGET "$remoteUrl" -q -O "$remotePath"
 	if [ "$?" == "0" ]; then
 		if [ -f "$localPath" ]; then
 			localMD5=`md5sum "$localPath" | awk '{print $1}'`
@@ -102,40 +116,146 @@ __update_rule() {
 }
 
 update_rss_rules() {
-	cp $KP_DIR/data/user.txt $KP_DIR/data/rules/user.txt
-	config_load $CONFIG
-	config_foreach __update_rule rss_rule
+	if [ $USER_TXT = true ]; then
+		cp $KP_DIR/data/user.txt $KP_DIR/data/rules/user.txt
+		config_foreach __update_rule rss_rule
+	#else
+		#rm -rf $KP_DIR/data/rules/user.txt
+	fi
 }
 
 
 	
 update_rules() {
 	echo $(date "+%F %T"): ------------------- 内置规则更新 ------------------- >>$LOGFILE
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/kp.dat' -q -O $KP_DIR/data/rules/kp.dat
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/daily.txt' -q -O $KP_DIR/data/rules/daily.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/koolproxy.txt' -q -O $KP_DIR/data/rules/koolproxy.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/yhosts.txt' -q -O $KP_DIR/data/rules/yhosts.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/steven.txt' -q -O $KP_DIR/data/rules/steven.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/adg.txt' -q -O $KP_DIR/data/rules/adg.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/antiad.txt' -q -O $KP_DIR/data/rules/antiad.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/adgk.txt' -q -O $KP_DIR/data/rules/adgk.txt
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/koolproxy_ipset.conf' -q -O $KP_DIR/koolproxy_ipset.conf
-	wget 'https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/dnsmasq.adblock' -q -O $KP_DIR/dnsmasq.adblock
-	adg_rules_local=`cat /usr/share/koolproxy/data/rules/adg.txt  | sed -n '4p'|awk '{print $4}'`
-	steven_rules_local=`cat /usr/share/koolproxy/data/rules/steven.txt  | sed -n '2p'|awk '{print $3,$4,$5,$6}'`
-	yhosts_rules_local=`cat /usr/share/koolproxy/data/rules/yhosts.txt  | sed -n '1p' | cut -d ":" -f2`
-	antiad_rules_local=`cat /usr/share/koolproxy/data/rules/antiad.txt  | sed -n '2p' | cut -d "=" -f2`
-	koolproxy_rules_local=`cat /usr/share/koolproxy/data/rules/koolproxy.txt  | sed -n '3p'|awk '{print $3,$4}'`
-	adgk_rules_local=`cat /usr/share/koolproxy/data/rules/adgk.txt  | sed -n '1p'|awk '{print $3}'`
-	echo $(date "+%F %T"): -------------------AdGuard规则 Version $adg_rules_local >>$LOGFILE
-	echo $(date "+%F %T"): -------------------Steven规则 Version $steven_rules_local >>$LOGFILE
-	echo $(date "+%F %T"): -------------------Yhosts规则 Version $yhosts_rules_local >>$LOGFILE
-	echo $(date "+%F %T"): -------------------AntiAD规则 Version $antiad_rules_local >>$LOGFILE
-	echo $(date "+%F %T"): -------------------坂本规则   Version $adgk_rules_local >>$LOGFILE
-	echo $(date "+%F %T"): -------------------静态规则   Version $koolproxy_rules_local >>$LOGFILE
+	if [ $KP_DAT = true ]; then
+		__compare_file "视频规则" "$KP_DIR/data/rules/kp.dat" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/kp.dat"
+	#else
+		#rm -rf $KP_DIR/data/rules/kp.dat
+	fi
+	if [ $DAILY_TXT = true ]; then
+		__compare_file "每日规则" "$KP_DIR/data/rules/daily.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/daily.txt"
+	#else
+		#rm -rf $KP_DIR/data/rules/daily.txt
+	fi
+	if [ $KOOLPROXY_TXT = true ]; then
+		__compare_file "静态规则" "$KP_DIR/data/rules/koolproxy.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/koolproxy.txt"
+		koolproxy_rules_local=`cat /usr/share/koolproxy/data/rules/koolproxy.txt  | sed -n '3p'|awk '{print $3,$4}'`
+		echo $(date "+%F %T"): -------------------静态规则   Version $koolproxy_rules_local >>$LOGFILE
+	#else
+		#rm -rf $KP_DIR/data/rules/koolproxy.txt
+	fi
+	if [ $YHOSTS_TXT = true ]; then
+		__compare_file "Yhosts规则" "$KP_DIR/data/rules/yhosts.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/yhosts.txt"
+		yhosts_rules_local=`cat /usr/share/koolproxy/data/rules/yhosts.txt  | sed -n '1p' | cut -d ":" -f2`
+		echo $(date "+%F %T"): -------------------Yhosts规则 Version $yhosts_rules_local >>$LOGFILE
+	#else
+		#rm -rf $KP_DIR/data/rules/yhosts.txt
+	fi
+	if [ $STEVEN_TXT = true ]; then
+		__compare_file "Steven规则" "$KP_DIR/data/rules/steven.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/steven.txt"
+		steven_rules_local=`cat /usr/share/koolproxy/data/rules/steven.txt  | sed -n '2p'|awk '{print $3,$4,$5,$6}'`
+		echo $(date "+%F %T"): -------------------Steven规则 Version $steven_rules_local >>$LOGFILE
+	#else
+		#rm -rf $KP_DIR/data/rules/steven.txt
+	fi
+	if [ $ADG_TXT = true ]; then
+		__compare_file "AdGuard规则" "$KP_DIR/data/rules/adg.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/adg.txt"
+		adg_rules_local=`cat /usr/share/koolproxy/data/rules/adg.txt  | sed -n '4p'|awk '{print $4}'`
+		echo $(date "+%F %T"): -------------------AdGuard规则 Version $adg_rules_local >>$LOGFILE
+	#else
+		#rm -rf $KP_DIR/data/rules/adg.txt
+	fi
+	if [ $ANTIAD_TXT = true ]; then
+		__compare_file "AntiAD规则" "$KP_DIR/data/rules/antiad.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/antiad.txt"
+		antiad_rules_local=`cat /usr/share/koolproxy/data/rules/antiad.txt  | sed -n '2p' | cut -d "=" -f2`
+		echo $(date "+%F %T"): -------------------AntiAD规则 Version $antiad_rules_local >>$LOGFILE
+	#else
+		#rm -rf $KP_DIR/data/rules/antiad.txt
+	fi
+	if [ $ADGK_TXT = true ]; then
+		__compare_file "Banben规则" "$KP_DIR/data/rules/adgk.txt" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/adgk.txt"
+		adgk_rules_local=`cat /usr/share/koolproxy/data/rules/adgk.txt  | sed -n '1p'|awk '{print $3}'`
+		echo $(date "+%F %T"): -------------------Banben规则   Version $adgk_rules_local >>$LOGFILE
+	#else
+		#rm -rf $KP_DIR/data/rules/adgk.txt
+	fi
+	if [ $KOOLPROXY_IPSET_CONF = true ]; then
+		__compare_file "IPSET" "$KP_DIR/koolproxy_ipset.conf" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/koolproxy_ipset.conf"
+	#else
+		#rm -rf $KP_DIR/koolproxy_ipset.conf
+	fi
+	if [ $DNSMASQ_ADBLOCK = true ]; then
+		__compare_file "Host" "$KP_DIR/dnsmasq.adblock" "https://yaof.coding.net/p/ikoolproxy/d/rules/git/raw/master/rules/dnsmasq.adblock"
+	#else
+		#rm -rf $KP_DIR/dnsmasq.adblock
+	fi
 	echo $(date "+%F %T"): ------------------- 内置规则更新成功！ ------------------- >>$LOGFILE
 	RESTART_KOOLPROXY=true
 
+}
+
+load_config() {
+	config_load $CONFIG
+
+	koolproxy_mode=$(config_t_get global koolproxy_mode 1)
+	koolproxy_host=$(config_t_get global koolproxy_host 0)
+
+	if [ "$koolproxy_mode" = "2" ]; then
+		# 过滤模式为【IPSET模式】
+		KOOLPROXY_IPSET_CONF=true
+		if [ "$koolproxy_host" = "1" ];then
+			# Adblock Plus Host
+			DNSMASQ_ADBLOCK=true
+		fi
+	fi
+	
+	local rulelist="$(uci -q get koolproxy.@global[0].koolproxy_rules)"
+	for rule in $rulelist
+	do
+		case "$rule" in
+			koolproxy.txt)
+				KOOLPROXY_TXT=true
+			;;
+			daily.txt)
+				DAILY_TXT=true
+			;;
+			kp.dat)
+				KP_DAT=true
+			;;
+			user.txt)
+				USER_TXT=true
+			;;
+		esac
+	done
+
+	local rulelist="$(uci -q get koolproxy.@global[0].thirdparty_rules)"
+	for rule in $rulelist
+	do
+		case "$rule" in
+			yhosts.txt)
+				YHOSTS_TXT=true
+			;;
+			adg.txt)
+				ADG_TXT=true
+			;;
+			steven.txt)
+				STEVEN_TXT=true
+			;;
+			antiad.txt)
+				ANTIAD_TXT=true
+			;;
+			adgk.txt)
+				ADGK_TXT=true
+			;;
+		esac
+	done
+	
+	if [ "$koolproxy_mode" = "3" ]; then
+		# 过滤模式为【视频过滤模式】
+		DAILY_TXT=false
+		KOOLPROXY_TXT=false
+	fi
 }
 
 update_adb_host() {
@@ -149,14 +269,13 @@ update_adb_host() {
 init_env
 limit_log $LOGFILE
 
+load_config
+
 # update rules
 update_rules
 
 # update user rules
 update_rss_rules
-
-koolproxy_mode=$(config_t_get global koolproxy_mode 1)
-koolproxy_host=$(config_t_get global koolproxy_host 0)
 
 # update ADB Plus Host
 if [ "$koolproxy_mode" == "2" ] && [ "$koolproxy_host" == "1" ];then
